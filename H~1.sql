@@ -1,15 +1,16 @@
 drop table PROFIT;
 drop table CAR;
+drop table PAYMENT;
 drop table BOOK;
 drop table ROOM;
 drop table ROOMTYPE;
 drop table CUSTOM;
-drop table PAYMENT;
 drop table HOTEL;
+drop sequence B_SEQ;
 purge recyclebin;
 
 create table HOTEL(
-HCODE varchar2(5)constraint HOTEL_HCODE_PK primary key,
+  HCODE varchar2(5)constraint HOTEL_HCODE_PK primary key,
   HNAME varchar2(99) constraint HOTEL_HNAME_NN not null,
   HOWNER varchar2(10) constraint HOTEL_HOWNER_NN not null,
   HADDR varchar2(99) constraint HOTEL_HADDR_NN not null,
@@ -36,47 +37,100 @@ create table ROOM(
   RNUM number(4) constraint ROOM_RUNUM_PK primary key,
   RGRD varchar2(1)constraint ROOM_RGRD_CHK check (RGRD in(0,1,2,3,4)),
   RBED number (1) constraint ROOM_RBED_CHK check (RBED in(0,1,2,3)),
-  VCODE varchar2(3) constraint ROOM_VCODE_FK references ROOMTYPE(VCODE) on delete cascade
+  VCODE varchar2(3) constraint ROOM_VCODE_FK references ROOMTYPE(VCODE) on delete cascade,
+  RPRICE number constraint ROOM_RPRICE_NN not null
 );
 
 create table BOOK(
-  BNUM varchar2(15)constraint BOOK_BNUM_PK primary key,
+  BNUM NUMBER,
   CNUM NUMBER(5) constraint BOOK_CNUM_FK references CUSTOM(CNUM)on delete cascade,
   CHECKIN date constraint BOOK_CHECKIN_NN not null,
   CHECKOUT date constraint BOOK_CHECKOUT_NN not null,
   BREAKFAST NUMBER(1) constraint BOOK_BREAKFAST_CHK check (BREAKFAST in('0','1')),
-  VALLET NUMBER(1) constraint BOOK_VALLET_CHK check (VALLET in('0','1')),
-  PEOPLE NUMBER(1) constraint BOOK_PEOPLE_CHK check (PEOPLE BETWEEN 1 and 4),--Ï≤¥ÌÅ¨Ìï¥Î≥ºÍ≤É
+  PEOPLE NUMBER(1) constraint BOOK_PEOPLE_CHK check (PEOPLE BETWEEN 1 and 4),--√º≈©«ÿ∫º∞Õ
   BDATE date ,
-  constraint BOOK_CNUM_UNQ UNIQUE (CNUM),
+  constraint BOOK_PK primary key(BNUM,CNUM),
   RNUM number(4) constraint BOOK_RNUM_FK references ROOM(RNUM)on delete cascade
 );
 
 create table CAR(
   CARNUM varchar2(8) constraint CAR_CARNUM_PK primary key,
-  BNUM varchar2(15) constraint CAR_BNUM_FK references BOOK(BNUM)on delete cascade,
-  CNUM NUMBER(5) constraint CAR_CNUM_FK references BOOK(CNUM)on delete cascade
+  BNUM NUMBER,
+  CNUM NUMBER(5),
+  constraint CAR_FK foreign key(BNUM,CNUM) references BOOK(BNUM,CNUM)on delete cascade
 );
 
 create table PAYMENT(
-  BNUM varchar2(15)constraint PAYMENT_BNUM_PK primary key,
+  BNUM NUMBER constraint PAYMENT_BNUM_PK primary key,
   PTYPE number(1) constraint PAYMENT_PTYPE_CHK check (PTYPE in(0,1,2)),
   PAMOUNT number(8)constraint PAYMENT_PAMOUNT_NN not null,
-  CNUM NUMBER(5) constraint PAYMENT_CNUM_FK references BOOK(CNUM)on delete cascade,
-  constraint PAYMENT_BNUM_FK foreign key(BNUM) references BOOK(BNUM)on delete cascade
+  CNUM NUMBER(5),
+  constraint PAYMENT_FK foreign key (BNUM,CNUM) references BOOK(BNUM,CNUM)
 );
 
 create table PROFIT(
   BCOUNT number,
   BTOTAL number
 );
- insert into HOTEL values('KSM08','ÏàòÏä§Ìò∏ÌÖî','ÌôçÍ∏∏Îèô','ÏÑúÏö∏Í∏àÏ≤úÍ∞ÄÏÇ∞','01000000000','123-456',sysdate);
- insert into CUSTOM values('12345','Íµ¨Ïä§','11111111','22133','KSM08');
+
+select CONSTRAINT_NAME, CONSTRAINT_TYPE from user_constraints order by CONSTRAINT_NAME;
+
+create sequence B_SEQ start with 1 increment by 1;
+
+create or replace trigger B_COUNT_TRG
+after insert on BOOK
+for each row
+begin
+update PROFIT set BCOUNT=B_SEQ.currval;
+end;
+/
+
+create or replace trigger B_TCOUNT_TRG
+after insert on PAYMENT
+for each row 
+begin
+update PROFIT set BTOTAL=BTOTAL+:NEW.PAMOUNT;
+end;
+/
+
+ --øπæ‡¿ª«“ãö
+ --call B_pro(∞Ì∞¥π¯»£,√º≈©¿Œ,º˜π⁄±‚∞£,¡∂Ωƒ,¿Œø¯ºˆ,∞¥Ω«,¬˜∑Æπ¯»£,∞·¡¶ºˆ¥‹);
+create or replace procedure B_PRO (
+P_CNUM CUSTOM.CNUM%TYPE,P_CHKIN BOOK.CHECKIN%TYPE,P_LOS number,P_BRF BOOK.BREAKFAST%TYPE,
+P_HEAD BOOK.PEOPLE%TYPE,P_RNUM ROOM.RNUM%TYPE,P_CARNUM CAR.CARNUM%TYPE,P_PTYPE PAYMENT.PTYPE%TYPE)
+
+is
+PAY PAYMENT.PAMOUNT%TYPE;
+R_PRICE ROOM.RPRICE%TYPE;
+
+begin
+
+if P_CARNUM is null then
+select RPRICE*P_LOS into PAY from ROOM where RNUM=P_RNUM;
+insert all 
+into BOOK values(B_SEQ.nextval,P_CNUM,P_CHKIN,P_CHKIN+P_LOS,P_BRF,P_HEAD,P_CHKIN-14,P_RNUM)
+into PAYMENT values(B_SEQ.currval,P_PTYPE,PAY,P_CNUM) select  * from DUAL;
+
+else 
+select RPRICE*P_LOS into PAY from ROOM where RNUM=P_RNUM;
+insert all 
+into BOOK values(B_SEQ.nextval,P_CNUM,P_CHKIN,P_CHKIN+P_LOS,P_BRF,P_HEAD,P_CHKIN-14,P_RNUM)
+into CAR values(P_CARNUM,B_SEQ.currval,P_CNUM)
+into PAYMENT values(B_SEQ.currval,P_PTYPE,PAY,P_CNUM) select  * from DUAL;
+end if;
+end;
+/
+       --   insert all  /into into into/ select * from DUAL;
+ insert into PROFIT values(0,0);
+
+ insert into HOTEL values('KSM08','ºˆΩ∫»£≈⁄','»´±Êµø','º≠øÔ±›√µ∞°ªÍ','01000000000','123-456',sysdate);
+ insert into CUSTOM values('12345','±∏Ω∫','11111111','22133','KSM08');
  insert into ROOMTYPE values(123,123);
- insert into ROOM values(401,1,1,123);
- insert into BOOK values('1','12345',sysdate,sysdate,1,1,1,sysdate,401);
- insert into CAR values(123,1,12345);
- insert into PAYMENT values(1,1,10000,12345);
+ insert into ROOM values(401,1,1,123,100000);
+ 
+ 
+ --call B_pro(∞Ì∞¥π¯»£,√º≈©¿Œ,º˜π⁄±‚∞£(∏Áƒ•),¡∂Ωƒ(0,1),¿Œø¯ºˆ(1~4),∞¥Ω«,¬˜∑Æπ¯»£,∞·¡¶ºˆ¥‹(0,1,2));
+call B_PRO('12345','19-02-17',4,1,4,401,'1234',1);
  
 select * from HOTEL;
 select * from CUSTOM;
@@ -86,5 +140,5 @@ select * from ROOM;
 select * from ROOMTYPE;
 select * from CAR;
 select * from PROFIT;
---ÏûêÎ£å,Ìä∏Î¶¨Í±∞,ÏãúÌÄÄÏä§,ÏöîÍµ¨ÏÇ¨Ìï≠,ÌÖåÏù¥Î∏î Ï†úÏïΩÏ°∞Í±¥, Ï∂îÍ∞Ä
-select CONSTRAINT_NAME, CONSTRAINT_TYPE from user_constraints order by CONSTRAINT_NAME;
+select B_SEQ.currval from DUAL;
+--¿⁄∑·(∞Ì∞¥,¬˜∑Æ,∫‰≈∏¿‘,∞¥Ω«¡§∫∏),ø‰±∏ªÁ«◊,≈◊¿Ã∫Ì ¡¶æ‡¡∂∞«(« ø‰Ω√),ªÁ¡¯ πŸ≤Ÿ±‚
