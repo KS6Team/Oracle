@@ -46,7 +46,7 @@ create table BOOK(
   CHECKOUT date constraint BOOK_CHECKOUT_NN not null,
   BREAKFAST NUMBER(1) constraint BOOK_BREAKFAST_CHK check (BREAKFAST in('0','1')),
   VALLET NUMBER(1) constraint BOOK_VALLET_CHK check (VALLET in('0','1')),
-  PEOPLE NUMBER(1) constraint BOOK_PEOPLE_CHK check (PEOPLE BETWEEN 1 and 4),--Ã¼Å©ÇØº¼°Í
+  PEOPLE NUMBER(1) constraint BOOK_PEOPLE_CHK check (PEOPLE BETWEEN 1 and 4),--ì²´í¬í•´ë³¼ê²ƒ
   BDATE date ,
   constraint BOOK_CNUM_UNQ UNIQUE (CNUM),
   RNUM number(4) constraint BOOK_RNUM_FK references ROOM(RNUM)on delete cascade
@@ -70,8 +70,8 @@ create table PROFIT(
   BCOUNT number,
   BTOTAL number
 );
- insert into HOTEL values('KSM08','¼ö½ºÈ£ÅÚ','È«±æµ¿','¼­¿ï±İÃµ°¡»ê','01000000000','123-456',sysdate);
- insert into CUSTOM values('12345','±¸½º','11111111','22133','KSM08');
+ insert into HOTEL values('KSM08','ìˆ˜ìŠ¤í˜¸í…”','í™ê¸¸ë™','ì„œìš¸ê¸ˆì²œê°€ì‚°','01000000000','123-456',sysdate);
+ insert into CUSTOM values('12345','êµ¬ìŠ¤','11111111','22133','KSM08');
  insert into ROOMTYPE values(123,123);
  insert into ROOM values(401,1,1,123);
  insert into BOOK values('1','12345',sysdate,sysdate,1,1,1,sysdate,401);
@@ -86,5 +86,5 @@ select * from ROOM;
 select * from ROOMTYPE;
 select * from CAR;
 select * from PROFIT;
---ÀÚ·á,Æ®¸®°Å,½ÃÄö½º,¿ä±¸»çÇ×,Å×ÀÌºí Á¦¾àÁ¶°Ç Ãß°¡
+--ìë£Œ,íŠ¸ë¦¬ê±°,ì‹œí€€ìŠ¤,ìš”êµ¬ì‚¬í•­,í…Œì´ë¸” ì œì•½ì¡°ê±´, ì¶”ê°€
 select CONSTRAINT_NAME, CONSTRAINT_TYPE from user_constraints order by CONSTRAINT_NAME;
