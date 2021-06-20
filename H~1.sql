@@ -50,7 +50,6 @@ create table BOOK(
   BDATE date constraint BOOK_BADTE_NN not null,
   RNUM number(4) constraint BOOK_RNUM_FK references ROOM(RNUM)on delete cascade,
   constraint BOOK_PK primary key(BNUM)
-  --constraint BOOK_ROOM_UNQ UNIQUE (CHECKIN,CHECKOU,)
   );
 
 create table CAR(
@@ -77,7 +76,7 @@ select CONSTRAINT_NAME, CONSTRAINT_TYPE from user_constraints order by CONSTRAIN
 
 create sequence B_SEQ start with 1 increment by 1 maxvalue 9999;
 
-create or replace trigger B_COUNT_TRG
+create or replace trigger B_COUNT_TRG --예약 횟수 카운트 트리거
 after insert on BOOK
 for each row
 begin
@@ -85,7 +84,7 @@ update PROFIT set BCOUNT=B_SEQ.currval;
 end;
 /
 
-create or replace trigger B_TCOUNT_TRG
+create or replace trigger B_TCOUNT_TRG --예약 금액 카운트 트리거
 after insert on PAYMENT
 for each row 
 begin
@@ -94,8 +93,8 @@ end;
 /
 
 
- --예약을할떄
-create or replace procedure B_PRO (
+ 
+create or replace procedure B_PRO (     --예약 프로시져
 P_CNUM CUSTOM.CNUM%TYPE,P_CHKIN BOOK.CHECKIN%TYPE,P_LOS number,P_BRF BOOK.BREAKFAST%TYPE,
 P_HEAD BOOK.PEOPLE%TYPE,P_RNUM ROOM.RNUM%TYPE,P_CARNUM CAR.CARNUM%TYPE,P_PTYPE PAYMENT.PTYPE%TYPE)
 
@@ -104,32 +103,36 @@ PAY PAYMENT.PAMOUNT%TYPE;
 R_PRICE ROOM.RPRICE%TYPE;
 
 begin
+if P_CARNUM is null then
+--차량이 없을경우
+select RPRICE*P_LOS into PAY from ROOM where RNUM=P_RNUM;
+insert all 
+into BOOK values(B_SEQ.nextval,P_CNUM,P_CHKIN,P_CHKIN+P_LOS,P_BRF,P_HEAD,P_CHKIN-14,P_RNUM)
+into CAR values(B_SEQ.currval,P_CNUM,'차량X')
+into PAYMENT values(B_SEQ.currval,P_PTYPE,PAY,P_CNUM) select  * from DUAL;
+
+else 
+--차량이 있을경우
 select RPRICE*P_LOS into PAY from ROOM where RNUM=P_RNUM;
 insert all 
 into BOOK values(B_SEQ.nextval,P_CNUM,P_CHKIN,P_CHKIN+P_LOS,P_BRF,P_HEAD,P_CHKIN-14,P_RNUM)
 into CAR values(B_SEQ.currval,P_CNUM,P_CARNUM)
 into PAYMENT values(B_SEQ.currval,P_PTYPE,PAY,P_CNUM) select  * from DUAL;
-
+end if;
 end;
 /
-        
+-- insert all  /into into into/ select * from DUAL;
+ insert into PROFIT values(0,0); --매출 초기화
 
-       -- insert all  /into into into/ select * from DUAL;
- insert into PROFIT values(0,0);
-
- insert into HOTEL values('S_SPY','홍길동','서울금천가산','010-0000-0000','123-456',sysdate);
- insert into CUSTOM values('12345','구스','11111111','22133','S_SPY');
+ insert into HOTEL values('S_SPY','홍길동','서울금천가산','010-0000-0000','123-456','21-01-01');
  insert into ROOMTYPE values('OCV','오션뷰');
  insert into ROOMTYPE values('CTV','씨티뷰');
- 
- --call B_pro(고객번호,체크인,숙박기간(며칠),조식(0,1),인원수(1~4),객실,차량번호(or null),결제수단(0,1,2));
- 
+
 select * from HOTEL;
-select * from CUSTOM;
-select * from BOOK;
-select * from PAYMENT;
+select * from CUSTOM order by CNUM;
+select * from BOOK order by BNUM;
+select * from PAYMENT order by BNUM;
 select * from ROOM;
 select * from ROOMTYPE;
-select * from CAR;
+select * from CAR order by BNUM;
 select * from PROFIT;
---자료(고객,차량,뷰타입,객실정보),요구사항,테이블 제약조건(필요시),사진 바꾸기
