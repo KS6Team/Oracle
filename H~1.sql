@@ -7,6 +7,9 @@ drop table ROOMTYPE;
 drop table CUSTOM;
 drop table HOTEL;
 drop sequence B_SEQ;
+drop trigger B_COUNT_TRG;
+drop trigger B_TCOUNT_TRG;
+drop procedure B_PRO;
 purge recyclebin;
 
 create table HOTEL(
@@ -74,7 +77,7 @@ create table PROFIT(
 
 select CONSTRAINT_NAME, CONSTRAINT_TYPE from user_constraints order by CONSTRAINT_NAME;
 
-create sequence B_SEQ start with 1 increment by 1 maxvalue 9999;
+create sequence B_SEQ start with 1 increment by 1;
 
 create or replace trigger B_COUNT_TRG --예약 횟수 카운트 트리거
 after insert on BOOK

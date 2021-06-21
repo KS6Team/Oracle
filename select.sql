@@ -20,3 +20,9 @@ select * from CAR order by BNUM;
 select * from BOOK where BDATE = '21-12-10';
 --숙박기간이 1박 2일 인 예약
 select * from BOOK where CHECKOUT - CHECKIN =1;
+--12층의 객실별 예약건수
+select  RNUM,count(BNUM)from BOOK group by RNUM having RNUM between 1200 and 1300 order by RNUM;
+--checkOUT 기준 6월 일별 매출(날짜순 정렬)
+select checkout, sum(PAMOUNT) from PAYMENT natural join BOOK group by checkout having checkout between '21-06-01' and '21-06-30' order by checkout ;
+--checkIN8월달의 OCV인 예약 (날짜순 정렬)
+select * from BOOK  natural join ROOM  where VCODE = 'OCV' and CHECKIN between '21-08-01'and'21-08-31' order by CHECKIN;
